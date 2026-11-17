@@ -11,13 +11,14 @@ Proyecto desarrollado para la exposición sobre Polymer de la materia **Tecnolog
 1. [Qué demuestra el ejemplo](#qué-demuestra-el-ejemplo)
 2. [Requisitos](#requisitos)
 3. [Instalación y ejecución](#instalación-y-ejecución)
-4. [Estructura del proyecto](#estructura-del-proyecto)
-5. [Cómo funciona](#cómo-funciona)
-6. [Conceptos de Polymer que se usan](#conceptos-de-polymer-que-se-usan)
-7. [Limitaciones conocidas](#limitaciones-conocidas)
-8. [Estado de Polymer y alternativa: Lit](#estado-de-polymer-y-alternativa-lit)
-9. [Solución de problemas](#solución-de-problemas)
-10. [Autores](#autores)
+4. [Guía de demostración (defensa)](#guía-de-demostración-defensa)
+5. [Estructura del proyecto](#estructura-del-proyecto)
+6. [Cómo funciona](#cómo-funciona)
+7. [Conceptos de Polymer que se usan](#conceptos-de-polymer-que-se-usan)
+8. [Limitaciones conocidas](#limitaciones-conocidas)
+9. [Estado de Polymer y alternativa: Lit](#estado-de-polymer-y-alternativa-lit)
+10. [Solución de problemas](#solución-de-problemas)
+11. [Autores](#autores)
 
 ---
 
@@ -88,6 +89,90 @@ npm start
 | `@web/dev-server` (desarrollo) | Servidor local con resolución de módulos y recarga | — |
 
 `package.json` declara estas dependencias con `latest`. Si necesitas reproducir exactamente el entorno de la exposición, fija las versiones de la tabla.
+
+---
+
+## Guía de demostración (defensa)
+
+Guion de unos 5 a 7 minutos para mostrar el ejemplo en vivo. Cada paso indica **qué hacer**, **qué se ve** y **qué concepto de Polymer demuestra**.
+
+### Antes de empezar (hacerlo con tiempo)
+
+- [ ] Ejecutar `npm install` una vez con Internet, para que `node_modules` ya exista.
+- [ ] Ejecutar `npm start` y confirmar que carga la lista de usuarios.
+- [ ] Tener abiertas las herramientas de desarrollo del navegador (F12) y el editor con `src/tarjeta-usuario.js` y `src/app-usuarios.js`.
+- [ ] Comprobar que hay Internet en el lugar de la defensa: la lista se carga desde una API pública.
+- [ ] **Plan B si no hay Internet:** mostrar las capturas de la presentación y explicar el flujo con el código.
+
+### Paso 1. Mostrar el resultado (30 s)
+
+- **Hacer:** abrir <http://localhost:8000>.
+- **Se ve:** el "Directorio de usuarios" con 10 tarjetas y el resumen "Mostrando datos de 10 usuarios · Favoritos: 0".
+- **Decir:** los datos no están escritos en el código: llegan de una API REST pública con `iron-ajax`, sin usar `fetch`.
+- **Demuestra:** consumo de API y binding `last-response="{{usuarios}}"`.
+
+### Paso 2. Búsqueda en tiempo real (45 s)
+
+- **Hacer:** escribir `cle` en el buscador y luego borrarlo.
+- **Se ve:** la lista baja a 2 usuarios al instante y vuelve a 10 al borrar.
+- **Decir:** no escribimos código para actualizar la pantalla: el campo está enlazado con `value="{{busqueda::input}}"` y el `dom-repeat` se vuelve a filtrar solo.
+- **Demuestra:** binding de dos vías con un elemento nativo y `dom-repeat` con `filter`.
+
+### Paso 3. Favoritos y comunicación hijo → padre (1 min)
+
+- **Hacer:** pulsar la estrella de dos o tres tarjetas.
+- **Se ve:** la tarjeta se resalta con borde dorado y el contador "Favoritos" sube.
+- **Hacer (extra):** buscar otro nombre, luego borrar la búsqueda: los favoritos siguen marcados.
+- **Decir:** la tarjeta es un componente independiente. Cuando cambia `favorito`, avisa al padre porque tiene `notify: true`; el padre recibe el cambio con `{{ }}` y recalcula el contador.
+- **Demuestra:** `notify`, `reflectToAttribute` (el borde dorado sale del selector `:host([favorito])`) y binding con comodín `usuarios.*`.
+
+### Paso 4. Mostrar el código clave (1,5 min)
+
+Abrir los dos archivos y señalar solo estas líneas:
+
+| Archivo | Qué señalar | Qué explicar |
+|---|---|---|
+| `tarjeta-usuario.js` | `favorito: { type: Boolean, value: false, notify: true, reflectToAttribute: true }` | Una propiedad declarada con dos superpoderes |
+| `tarjeta-usuario.js` | `iniciales: { computed: '_calcularIniciales(nombre)' }` | Se recalcula sola cuando cambia el nombre |
+| `app-usuarios.js` | `<iron-ajax auto url="..." last-response="{{usuarios}}">` | Consume la API declarativamente |
+| `app-usuarios.js` | `<template is="dom-repeat" ... filter="[[_crearFiltro(busqueda)]]">` | Una tarjeta por usuario, con filtro |
+| `app-usuarios.js` | `favorito="{{usuario.favorito}}"` frente a `nombre="[[usuario.name]]"` | Diferencia entre dos vías y una vía |
+
+### Paso 5. Probar el Shadow DOM en vivo (1 min)
+
+- **Hacer:** en DevTools, pestaña **Elements**, expandir `<app-usuarios>` y `<tarjeta-usuario>`: se ve `#shadow-root (open)`.
+- **Hacer (prueba):** en la pestaña **Console**, pegar:
+
+  ```js
+  document.head.insertAdjacentHTML('beforeend', '<style>.tarjeta{background:red !important}</style>')
+  ```
+
+- **Se ve:** las tarjetas **no cambian de color**.
+- **Decir:** la regla global no entra en el componente porque sus estilos están encapsulados en el Shadow DOM. Esto lo hace el navegador; Polymer solo crea el shadow tree a partir de la plantilla.
+- **Demuestra:** encapsulamiento de estilos.
+
+### Paso 6 (opcional). Recarga en vivo (30 s)
+
+- **Hacer:** en `app-usuarios.js`, cambiar el texto del `<h1>` y guardar.
+- **Se ve:** el navegador se recarga solo (`--watch`).
+- **Decir:** así fue el flujo de desarrollo del proyecto.
+
+### Cierre (30 s)
+
+- Resumir: dos componentes que se comunican con binding, una API, un filtro y estilos encapsulados, sin tocar el DOM a mano.
+- Mencionar con honestidad las limitaciones (los favoritos no se guardan, no hay manejo de errores de red) y que Polymer está en modo mantenimiento, por lo que para proyectos nuevos se recomienda **Lit**, que conserva estas mismas ideas.
+
+### Preguntas probables y respuestas cortas
+
+| Pregunta | Respuesta |
+|---|---|
+| ¿Por qué usar Polymer si está en mantenimiento? | Sigue funcionando y hay mucho código que lo usa; además sus ideas pasaron a Lit, así que aprenderlo ayuda a entender los Web Components actuales. |
+| ¿Qué diferencia hay con HTML5 puro? | Con HTML5 puro hay que actualizar el DOM a mano y los estilos son globales. Polymer ofrece componentes reutilizables, data binding automático y estilos aislados. Los Custom Elements y el Shadow DOM son del navegador; Polymer agrega propiedades, plantillas y binding. |
+| ¿Diferencia entre `[[ ]]` y `{{ }}`? | `[[ ]]` va solo hacia abajo (padre a hijo). `{{ }}` va en ambos sentidos, si la propiedad del hijo tiene `notify: true`. |
+| ¿Por qué hace falta un servidor? | El navegador no resuelve rutas como `@polymer/polymer/...`; el servidor las convierte en rutas reales. |
+| ¿Qué pasa si la API falla? | La lista queda vacía: no se implementó manejo de errores. Se podría resolver con el evento `error` de `iron-ajax`. |
+| ¿Se puede estilizar un componente desde afuera? | Sí, con variables CSS (`--mi-variable`), que sí atraviesan el Shadow DOM, o con propiedades heredables como `color` o `font-family`. |
+| ¿Funciona con React, Angular o Vue? | Sí, los Web Components son elementos HTML estándar y se pueden usar en cualquier framework o sin ninguno. |
 
 ---
 
