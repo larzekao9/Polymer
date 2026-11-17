@@ -1,0 +1,10 @@
+Proyecto de ejemplo: Directorio de usuarios con Polymer 3
+
+1) Instala Node.js (LTS) desde https://nodejs.org
+2) En esta carpeta ejecuta:
+     npm install
+     npm start
+3) Se abre http://localhost:8000
+
+src/hola-polymer.js  -> componente de prueba (seccion 5.4 del documento)
+src/tarjeta-usuario.js y src/app-usuarios.js -> ejemplo practico (seccion 6)
